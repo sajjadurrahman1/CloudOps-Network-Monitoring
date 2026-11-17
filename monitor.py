@@ -1,4 +1,4 @@
-
+from database import create_database, save_result
 import requests
 import time
 from datetime import datetime
@@ -29,6 +29,14 @@ def check_server():
         print("HTTP Status:", response.status_code)
         print("Timestamp:", datetime.now())
 
+        save_result(
+    SERVER_NAME,
+    status,
+    round(response_time, 2),
+    response.status_code,
+    datetime.now().isoformat(timespec="seconds")
+)
+
     except requests.RequestException:
         print("Server:", SERVER_NAME)
         print("Status: OFFLINE")
@@ -36,5 +44,12 @@ def check_server():
         print("HTTP Status: N/A")
         print("Timestamp:", datetime.now())
 
-
+        save_result(
+    SERVER_NAME,
+    "OFFLINE",
+    None,
+    None,
+    datetime.now().isoformat(timespec="seconds")
+)
+create_database()
 check_server()
