@@ -8,7 +8,9 @@
     <title>CloudOps Dashboard</title>
     <link rel="stylesheet"
           href="{{ url_for('static', filename='style.css') }}">
+          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
     <main class="container">
         <header>
@@ -39,6 +41,16 @@
 
         </section>
 
+<section class="panel chart-panel">
+    <h2>Server Response Time</h2>
+    <p class="chart-description">
+        Response time across monitoring checks (milliseconds)
+    </p>
+    <div class="chart-container">
+        <canvas id="responseTimeChart"></canvas>
+    </div>
+</section>
+
         <section class="panel">
             <h2>Monitoring History</h2>
 
@@ -66,6 +78,55 @@
                 }
 
                 const records = await response.json();
+
+const chartRecords = [...records].reverse();
+
+const labels = chartRecords.map(record =>
+    record.timestamp.replace('T', ' ')
+);
+
+const responseTimes = chartRecords.map(record =>
+    record.status === 'ONLINE'
+        ? record.response_time
+        : null
+);
+
+if (window.responseChart) {
+    window.responseChart.data.labels = labels;
+    window.responseChart.data.datasets[0].data = responseTimes;
+    window.responseChart.update();
+} else {
+    const ctx = document.getElementById('responseTimeChart');
+
+    window.responseChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Response Time (ms)',
+                data: responseTimes,
+                borderColor: '#38bdf8',
+                backgroundColor: 'rgba(56,189,248,0.12)',
+                tension: 0.3,
+                fill: true,
+                spanGaps: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Milliseconds'
+                    }
+                }
+            }
+        }
+    });
+}
 
                 const online = records.filter(
                     r => r.status === 'ONLINE'

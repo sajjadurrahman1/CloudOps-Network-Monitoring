@@ -85,3 +85,17 @@ th {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+.chart-panel {
+    margin-bottom: 30px;
+}
+
+.chart-description {
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.chart-container {
+    position: relative;
+    height: 320px;
+    width: 100%;
+}
