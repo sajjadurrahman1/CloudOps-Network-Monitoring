@@ -1,0 +1,117 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+    <title>CloudOps Dashboard</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="container">
+        <header>
+            <h1>CloudOps Dashboard</h1>
+            <p>Network Monitoring & Analytics</p>
+        </header>
+
+        <section class="stats">
+            <div class="card">
+                <h3>Total Checks</h3>
+                <p id="total-checks">--</p>
+            </div>
+
+            <div class="card">
+                <h3>Successful Checks</h3>
+                <p id="online-checks">--</p>
+            </div>
+
+            <div class="card">
+                <h3>Latest Status</h3>
+                <p id="latest-status">--</p>
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Monitoring History</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Server</th>
+                        <th>Status</th>
+                        <th>Response Time</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="monitoring-table"></tbody>
+            </table>
+        </section>
+    </main>
+
+    <script>
+        async function loadMonitoringData() {
+            try {
+                const response = await fetch('/api/monitoring');
+
+                if (!response.ok) {
+                    throw new Error('API request failed');
+                }
+
+                const records = await response.json();
+
+                const online = records.filter(
+                    r => r.status === 'ONLINE'
+                ).length;
+
+                document.getElementById('total-checks')
+                    .textContent = records.length;
+
+                document.getElementById('online-checks')
+                    .textContent = online;
+
+                document.getElementById('latest-status')
+                    .textContent = records.length
+                        ? records[0].status
+                        : 'No data';
+
+                const table = document.getElementById(
+                    'monitoring-table'
+                );
+
+                table.replaceChildren();
+
+                records.forEach(record => {
+                    const row = document.createElement('tr');
+
+                    const values = [
+                        record.server,
+                        record.status,
+                        record.response_time === null
+                            ? 'N/A'
+                            : `${record.response_time} ms`,
+                        record.timestamp
+                    ];
+
+                    values.forEach(value => {
+                        const cell = document.createElement('td');
+                        cell.textContent = value;
+                        row.appendChild(cell);
+                    });
+
+                    table.appendChild(row);
+                });
+
+            } catch (error) {
+                console.error('Monitoring error:', error);
+                document.getElementById('latest-status')
+                    .textContent = 'API Error';
+            }
+        }
+
+        loadMonitoringData();
+        setInterval(loadMonitoringData, 30000);
+    </script>
+</body>
+</html>

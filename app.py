@@ -1,5 +1,5 @@
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template
 import sqlite3
 
 app = Flask(__name__)
@@ -15,7 +15,9 @@ def home():
         "status": "running"
     })
 
-
+@app.route("/dashboard")
+def dashboard():
+    return render_template("index.html")
 @app.route("/api/monitoring")
 def get_monitoring_data():
 
