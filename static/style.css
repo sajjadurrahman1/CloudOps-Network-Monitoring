@@ -31,7 +31,7 @@ header p {
 
 .stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 20px;
     margin-bottom: 30px;
 }
@@ -78,5 +78,10 @@ th {
 @media (max-width: 700px) {
     .stats {
         grid-template-columns: 1fr;
+    }
+}
+@media (min-width: 701px) and (max-width: 1000px) {
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
     }
 }

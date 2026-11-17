@@ -31,6 +31,12 @@
                 <h3>Latest Status</h3>
                 <p id="latest-status">--</p>
             </div>
+
+<div class="card">
+    <h3>Successful Check Rate</h3>
+    <p id="uptime-percentage">--</p>
+</div>
+
         </section>
 
         <section class="panel">
@@ -64,6 +70,13 @@
                 const online = records.filter(
                     r => r.status === 'ONLINE'
                 ).length;
+
+const uptimePercentage = records.length > 0
+    ? (online / records.length) * 100
+    : 0;
+
+document.getElementById('uptime-percentage')
+    .textContent = uptimePercentage.toFixed(1) + '%';
 
                 document.getElementById('total-checks')
                     .textContent = records.length;
