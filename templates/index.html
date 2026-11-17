@@ -150,6 +150,22 @@ document.getElementById('uptime-percentage')
                         ? records[0].status
                         : 'No data';
 
+const latestStatusElement =
+    document.getElementById('latest-status');
+
+latestStatusElement.classList.remove(
+    'status-online',
+    'status-offline'
+);
+
+if (records.length > 0) {
+    if (records[0].status === 'ONLINE') {
+        latestStatusElement.classList.add('status-online');
+    } else if (records[0].status === 'OFFLINE') {
+        latestStatusElement.classList.add('status-offline');
+    }
+}
+
                 const table = document.getElementById(
                     'monitoring-table'
                 );
@@ -168,11 +184,29 @@ document.getElementById('uptime-percentage')
                         record.timestamp
                     ];
 
-                    values.forEach(value => {
-                        const cell = document.createElement('td');
-                        cell.textContent = value;
-                        row.appendChild(cell);
-                    });
+                   
+values.forEach((value, index) => {
+    const cell = document.createElement('td');
+
+    if (index === 1) {
+        const badge = document.createElement('span');
+
+        badge.textContent = value;
+        badge.classList.add('status-badge');
+
+        if (value === 'ONLINE') {
+            badge.classList.add('status-online');
+        } else if (value === 'OFFLINE') {
+            badge.classList.add('status-offline');
+        }
+
+        cell.appendChild(badge);
+    } else {
+        cell.textContent = value;
+    }
+
+    row.appendChild(cell);
+});
 
                     table.appendChild(row);
                 });
