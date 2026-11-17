@@ -51,5 +51,20 @@ def check_server():
     None,
     datetime.now().isoformat(timespec="seconds")
 )
-create_database()
-check_server()
+
+if __name__ == "__main__":
+    create_database()
+
+    print("CloudOps monitoring started.")
+    print("Checking server every 30 seconds.")
+    print("Press Ctrl+C to stop.\n")
+
+    try:
+        while True:
+            check_server()
+            print("-" * 40)
+            time.sleep(30)
+
+    except KeyboardInterrupt:
+        print("\nCloudOps monitoring stopped.")
+
