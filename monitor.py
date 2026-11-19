@@ -1,3 +1,4 @@
+
 import json
 from pathlib import Path
 import requests
@@ -6,8 +7,6 @@ from datetime import datetime
 
 from database import create_database, save_result
 
-
-# Servers to monitor
 
 # Load monitoring targets from servers.json.
 CONFIG_FILE = Path(__file__).resolve().parent / "servers.json"
@@ -19,9 +18,13 @@ def load_servers():
 
     servers = config["servers"]
 
-    if not isinstance(servers, list):
-        raise ValueError("'servers' must be a list")
+    # Ensure at least one server is configured.
+    if not isinstance(servers, list) or not servers:
+        raise ValueError(
+            "'servers' must be a non-empty list"
+        )
 
+    # Validate each server configuration.
     for server in servers:
         if (
             not isinstance(server, dict)
@@ -35,8 +38,18 @@ def load_servers():
     return servers
 
 
-SERVERS = load_servers()
-
+# Handle configuration errors gracefully.
+try:
+    SERVERS = load_servers()
+except (
+    FileNotFoundError,
+    json.JSONDecodeError,
+    KeyError,
+    ValueError
+) as error:
+    raise SystemExit(
+        f"CloudOps configuration error: {error}"
+    )
 
 
 def check_server(server):
@@ -69,6 +82,7 @@ def check_server(server):
         response_time = None
         http_status = None
 
+    # Display monitoring results.
     print(f"Server: {name}")
     print(f"URL: {url}")
     print(f"Status: {status}")
@@ -76,6 +90,7 @@ def check_server(server):
     print(f"HTTP Status: {http_status}")
     print(f"Timestamp: {timestamp}")
 
+    # Save one monitoring record to the database.
     save_result(
         name,
         status,
@@ -84,7 +99,6 @@ def check_server(server):
         timestamp
     )
 
-    print("Monitoring result saved to database.")
     print("-" * 40)
 
 
