@@ -1,0 +1,21 @@
+
+{
+  "servers": [
+    {
+      "name": "Local Server",
+      "url": "http://127.0.0.1:5000"
+    },
+    {
+      "name": "Example Website",
+      "url": "https://example.com"
+    },
+    {
+      "name": "Python Website",
+      "url": "https://www.python.org"
+    },
+    {
+      "name": "GitHub",
+      "url": "https://github.com"
+    }
+  ]
+}

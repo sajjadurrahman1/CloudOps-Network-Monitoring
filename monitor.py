@@ -1,4 +1,5 @@
-
+import json
+from pathlib import Path
 import requests
 import time
 from datetime import datetime
@@ -7,20 +8,35 @@ from database import create_database, save_result
 
 
 # Servers to monitor
-SERVERS = [
-    {
-        "name": "Local Server",
-        "url": "http://127.0.0.1:5000"
-    },
-    {
-        "name": "Example Website",
-        "url": "https://example.com"
-    },
-    {
-        "name": "Python Website",
-        "url": "https://www.python.org"
-    }
-]
+
+# Load monitoring targets from servers.json.
+CONFIG_FILE = Path(__file__).resolve().parent / "servers.json"
+
+
+def load_servers():
+    with CONFIG_FILE.open("r", encoding="utf-8") as file:
+        config = json.load(file)
+
+    servers = config["servers"]
+
+    if not isinstance(servers, list):
+        raise ValueError("'servers' must be a list")
+
+    for server in servers:
+        if (
+            not isinstance(server, dict)
+            or not isinstance(server.get("name"), str)
+            or not isinstance(server.get("url"), str)
+            or not server["name"].strip()
+            or not server["url"].startswith(("http://", "https://"))
+        ):
+            raise ValueError("Invalid server configuration")
+
+    return servers
+
+
+SERVERS = load_servers()
+
 
 
 def check_server(server):
