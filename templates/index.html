@@ -59,6 +59,16 @@
     <p id="average-response">--</p>
 </div>
 
+<div class="card">
+    <h3>Fastest Response Time</h3>
+    <p id="fastest-response">--</p>
+</div>
+
+<div class="card">
+    <h3>Slowest Response Time</h3>
+    <p id="slowest-response">--</p>
+</div>
+
         </section>
 
         <!-- Response-time chart -->
@@ -167,6 +177,26 @@ document.getElementById('average-response')
     .textContent = averageResponse === null
         ? 'N/A'
         : averageResponse.toFixed(2) + ' ms';
+
+// Find the fastest and slowest successful responses.
+const fastestResponse = validResponseTimes.length > 0
+    ? Math.min(...validResponseTimes)
+    : null;
+
+const slowestResponse = validResponseTimes.length > 0
+    ? Math.max(...validResponseTimes)
+    : null;
+
+// Update the new statistics cards.
+document.getElementById('fastest-response')
+    .textContent = fastestResponse === null
+        ? 'N/A'
+        : fastestResponse.toFixed(2) + ' ms';
+
+document.getElementById('slowest-response')
+    .textContent = slowestResponse === null
+        ? 'N/A'
+        : slowestResponse.toFixed(2) + ' ms';
 
                 const successRate = filteredRecords.length > 0
                     ? (online / filteredRecords.length) * 100
