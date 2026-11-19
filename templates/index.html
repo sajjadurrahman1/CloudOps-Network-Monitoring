@@ -5,20 +5,35 @@
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
+
     <title>CloudOps Dashboard</title>
+
     <link rel="stylesheet"
           href="{{ url_for('static', filename='style.css') }}">
-          <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
     <main class="container">
+
         <header>
             <h1>CloudOps Dashboard</h1>
             <p>Network Monitoring & Analytics</p>
         </header>
 
+        <!-- Server selector -->
+        <section class="server-filter">
+            <label for="server-select">Select Server:</label>
+
+            <select id="server-select">
+                <option value="ALL">All Servers</option>
+            </select>
+        </section>
+
+        <!-- Statistics cards -->
         <section class="stats">
+
             <div class="card">
                 <h3>Total Checks</h3>
                 <p id="total-checks">--</p>
@@ -34,23 +49,27 @@
                 <p id="latest-status">--</p>
             </div>
 
-<div class="card">
-    <h3>Successful Check Rate</h3>
-    <p id="uptime-percentage">--</p>
-</div>
+            <div class="card">
+                <h3>Successful Check Rate</h3>
+                <p id="uptime-percentage">--</p>
+            </div>
 
         </section>
 
-<section class="panel chart-panel">
-    <h2>Server Response Time</h2>
-    <p class="chart-description">
-        Response time across monitoring checks (milliseconds)
-    </p>
-    <div class="chart-container">
-        <canvas id="responseTimeChart"></canvas>
-    </div>
-</section>
+        <!-- Response-time chart -->
+        <section class="panel chart-panel">
+            <h2>Server Response Time</h2>
 
+            <p class="chart-description">
+                Response time across monitoring checks (milliseconds)
+            </p>
+
+            <div class="chart-container">
+                <canvas id="responseTimeChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Monitoring history -->
         <section class="panel">
             <h2>Monitoring History</h2>
 
@@ -63,12 +82,15 @@
                         <th>Timestamp</th>
                     </tr>
                 </thead>
+
                 <tbody id="monitoring-table"></tbody>
             </table>
         </section>
+
     </main>
 
     <script>
+        // Load monitoring records from the Flask REST API.
         async function loadMonitoringData() {
             try {
                 const response = await fetch('/api/monitoring');
@@ -79,100 +101,158 @@
 
                 const records = await response.json();
 
-const chartRecords = [...records].reverse();
+                // Get the server selector.
+                const serverSelect =
+                    document.getElementById('server-select');
 
-const labels = chartRecords.map(record =>
-    record.timestamp.replace('T', ' ')
-);
+                // Remember the selected server.
+                const selectedServer = serverSelect.value;
 
-const responseTimes = chartRecords.map(record =>
-    record.status === 'ONLINE'
-        ? record.response_time
-        : null
-);
+                // Get unique server names from API records.
+                const serverNames = [
+                    ...new Set(records.map(record => record.server))
+                ];
 
-if (window.responseChart) {
-    window.responseChart.data.labels = labels;
-    window.responseChart.data.datasets[0].data = responseTimes;
-    window.responseChart.update();
-} else {
-    const ctx = document.getElementById('responseTimeChart');
+                // Rebuild dropdown options.
+                serverSelect.replaceChildren();
 
-    window.responseChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Response Time (ms)',
-                data: responseTimes,
-                borderColor: '#38bdf8',
-                backgroundColor: 'rgba(56,189,248,0.12)',
-                tension: 0.3,
-                fill: true,
-                spanGaps: false
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Milliseconds'
-                    }
-                }
-            }
-        }
-    });
-}
+                serverSelect.add(
+                    new Option('All Servers', 'ALL')
+                );
 
-                const online = records.filter(
-                    r => r.status === 'ONLINE'
+                serverNames.forEach(name => {
+                    serverSelect.add(new Option(name, name));
+                });
+
+                // Restore the previous selection.
+                serverSelect.value =
+                    serverNames.includes(selectedServer)
+                        ? selectedServer
+                        : 'ALL';
+
+                // Only use records for the selected server.
+                const filteredRecords =
+                    serverSelect.value === 'ALL'
+                        ? records
+                        : records.filter(
+                            record =>
+                                record.server === serverSelect.value
+                        );
+
+                // Calculate statistics for filtered records.
+                const online = filteredRecords.filter(
+                    record => record.status === 'ONLINE'
                 ).length;
 
-const uptimePercentage = records.length > 0
-    ? (online / records.length) * 100
-    : 0;
-
-document.getElementById('uptime-percentage')
-    .textContent = uptimePercentage.toFixed(1) + '%';
+                const successRate = filteredRecords.length > 0
+                    ? (online / filteredRecords.length) * 100
+                    : 0;
 
                 document.getElementById('total-checks')
-                    .textContent = records.length;
+                    .textContent = filteredRecords.length;
 
                 document.getElementById('online-checks')
                     .textContent = online;
 
-                document.getElementById('latest-status')
-                    .textContent = records.length
-                        ? records[0].status
-                        : 'No data';
+                document.getElementById('uptime-percentage')
+                    .textContent = successRate.toFixed(1) + '%';
 
-const latestStatusElement =
-    document.getElementById('latest-status');
+                // Update latest status.
+                const latestStatusElement =
+                    document.getElementById('latest-status');
 
-latestStatusElement.classList.remove(
-    'status-online',
-    'status-offline'
-);
+                const latestStatus = filteredRecords.length > 0
+                    ? filteredRecords[0].status
+                    : 'No data';
 
-if (records.length > 0) {
-    if (records[0].status === 'ONLINE') {
-        latestStatusElement.classList.add('status-online');
-    } else if (records[0].status === 'OFFLINE') {
-        latestStatusElement.classList.add('status-offline');
-    }
-}
+                latestStatusElement.textContent = latestStatus;
 
+                latestStatusElement.classList.remove(
+                    'status-online',
+                    'status-offline'
+                );
+
+                if (latestStatus === 'ONLINE') {
+                    latestStatusElement.classList.add(
+                        'status-online'
+                    );
+                } else if (latestStatus === 'OFFLINE') {
+                    latestStatusElement.classList.add(
+                        'status-offline'
+                    );
+                }
+
+                // Prepare chart data in chronological order.
+                const chartRecords = [...filteredRecords].reverse();
+
+                const labels = chartRecords.map(record =>
+                    record.timestamp.replace('T', ' ')
+                );
+
+                const responseTimes = chartRecords.map(record =>
+                    record.status === 'ONLINE'
+                        ? record.response_time
+                        : null
+                );
+
+                // Update the existing chart or create it.
+                if (window.responseChart) {
+                    window.responseChart.data.labels = labels;
+
+                    window.responseChart.data.datasets[0].data =
+                        responseTimes;
+
+                    window.responseChart.update();
+
+                } else {
+                    const ctx = document.getElementById(
+                        'responseTimeChart'
+                    );
+
+                    window.responseChart = new Chart(ctx, {
+                        type: 'line',
+
+                        data: {
+                            labels: labels,
+
+                            datasets: [{
+                                label: 'Response Time (ms)',
+                                data: responseTimes,
+                                borderColor: '#38bdf8',
+                                backgroundColor:
+                                    'rgba(56,189,248,0.12)',
+                                tension: 0.3,
+                                fill: true,
+                                spanGaps: false
+                            }]
+                        },
+
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+
+                                    title: {
+                                        display: true,
+                                        text: 'Milliseconds'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Update monitoring history table.
                 const table = document.getElementById(
                     'monitoring-table'
                 );
 
                 table.replaceChildren();
 
-                records.forEach(record => {
+                filteredRecords.forEach(record => {
                     const row = document.createElement('tr');
 
                     const values = [
@@ -184,41 +264,54 @@ if (records.length > 0) {
                         record.timestamp
                     ];
 
-                   
-values.forEach((value, index) => {
-    const cell = document.createElement('td');
+                    values.forEach((value, index) => {
+                        const cell = document.createElement('td');
 
-    if (index === 1) {
-        const badge = document.createElement('span');
+                        if (index === 1) {
+                            const badge =
+                                document.createElement('span');
 
-        badge.textContent = value;
-        badge.classList.add('status-badge');
+                            badge.textContent = value;
+                            badge.classList.add('status-badge');
 
-        if (value === 'ONLINE') {
-            badge.classList.add('status-online');
-        } else if (value === 'OFFLINE') {
-            badge.classList.add('status-offline');
-        }
+                            if (value === 'ONLINE') {
+                                badge.classList.add(
+                                    'status-online'
+                                );
+                            } else if (value === 'OFFLINE') {
+                                badge.classList.add(
+                                    'status-offline'
+                                );
+                            }
 
-        cell.appendChild(badge);
-    } else {
-        cell.textContent = value;
-    }
+                            cell.appendChild(badge);
 
-    row.appendChild(cell);
-});
+                        } else {
+                            cell.textContent = value;
+                        }
+
+                        row.appendChild(cell);
+                    });
 
                     table.appendChild(row);
                 });
 
             } catch (error) {
                 console.error('Monitoring error:', error);
+
                 document.getElementById('latest-status')
                     .textContent = 'API Error';
             }
         }
 
+        // Refresh dashboard when another server is selected.
+        document.getElementById('server-select')
+            .addEventListener('change', loadMonitoringData);
+
+        // Initial data load.
         loadMonitoringData();
+
+        // Automatically refresh every 30 seconds.
         setInterval(loadMonitoringData, 30000);
     </script>
 </body>

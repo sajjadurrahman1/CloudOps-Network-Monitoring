@@ -1,70 +1,95 @@
-from database import create_database, save_result
+
 import requests
 import time
 from datetime import datetime
 
-# Monitor a local test server
-SERVER_NAME = "Local Server"
-SERVER_URL = "http://127.0.0.1:5000"
+from database import create_database, save_result
 
 
-def check_server():
-    start_time = time.perf_counter()
+# Servers to monitor
+SERVERS = [
+    {
+        "name": "Local Server",
+        "url": "http://127.0.0.1:5000"
+    },
+    {
+        "name": "Example Website",
+        "url": "https://example.com"
+    },
+    {
+        "name": "Python Website",
+        "url": "https://www.python.org"
+    }
+]
+
+
+def check_server(server):
+    name = server["name"]
+    url = server["url"]
+
+    timestamp = datetime.now().isoformat(
+        timespec="seconds"
+    )
 
     try:
-        response = requests.get(SERVER_URL, timeout=5)
+        start_time = time.perf_counter()
 
-        response_time = (
-            time.perf_counter() - start_time
-        ) * 1000
+        response = requests.get(url, timeout=5)
 
-        if 200 <= response.status_code < 400:
+        response_time = round(
+            (time.perf_counter() - start_time) * 1000,
+            2
+        )
+
+        http_status = response.status_code
+
+        if 200 <= http_status < 400:
             status = "ONLINE"
         else:
-            status = "ERROR"
-
-        print("Server:", SERVER_NAME)
-        print("Status:", status)
-        print("Response Time:", round(response_time, 2), "ms")
-        print("HTTP Status:", response.status_code)
-        print("Timestamp:", datetime.now())
-
-        save_result(
-    SERVER_NAME,
-    status,
-    round(response_time, 2),
-    response.status_code,
-    datetime.now().isoformat(timespec="seconds")
-)
+            status = "OFFLINE"
 
     except requests.RequestException:
-        print("Server:", SERVER_NAME)
-        print("Status: OFFLINE")
-        print("Response Time: N/A")
-        print("HTTP Status: N/A")
-        print("Timestamp:", datetime.now())
+        status = "OFFLINE"
+        response_time = None
+        http_status = None
 
-        save_result(
-    SERVER_NAME,
-    "OFFLINE",
-    None,
-    None,
-    datetime.now().isoformat(timespec="seconds")
-)
+    print(f"Server: {name}")
+    print(f"URL: {url}")
+    print(f"Status: {status}")
+    print(f"Response Time: {response_time}")
+    print(f"HTTP Status: {http_status}")
+    print(f"Timestamp: {timestamp}")
 
-if __name__ == "__main__":
+    save_result(
+        name,
+        status,
+        response_time,
+        http_status,
+        timestamp
+    )
+
+    print("Monitoring result saved to database.")
+    print("-" * 40)
+
+
+def main():
     create_database()
 
-    print("CloudOps monitoring started.")
-    print("Checking server every 30 seconds.")
+    print("CloudOps Multi-Server Monitoring Started")
+    print(f"Monitoring {len(SERVERS)} servers")
     print("Press Ctrl+C to stop.\n")
 
     try:
         while True:
-            check_server()
-            print("-" * 40)
+            for server in SERVERS:
+                check_server(server)
+
+            print("Monitoring cycle completed.\n")
             time.sleep(30)
 
     except KeyboardInterrupt:
         print("\nCloudOps monitoring stopped.")
 
+
+if __name__ == "__main__":
+    main()
