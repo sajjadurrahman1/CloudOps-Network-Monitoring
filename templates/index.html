@@ -54,6 +54,11 @@
                 <p id="uptime-percentage">--</p>
             </div>
 
+<div class="card">
+    <h3>Average Response Time</h3>
+    <p id="average-response">--</p>
+</div>
+
         </section>
 
         <!-- Response-time chart -->
@@ -143,6 +148,25 @@
                 const online = filteredRecords.filter(
                     record => record.status === 'ONLINE'
                 ).length;
+
+// Calculate average latency from successful checks.
+const validResponseTimes = filteredRecords
+    .filter(record =>
+        record.status === 'ONLINE' &&
+        typeof record.response_time === 'number'
+    )
+    .map(record => record.response_time);
+
+const averageResponse = validResponseTimes.length > 0
+    ? validResponseTimes.reduce(
+        (sum, value) => sum + value, 0
+      ) / validResponseTimes.length
+    : null;
+
+document.getElementById('average-response')
+    .textContent = averageResponse === null
+        ? 'N/A'
+        : averageResponse.toFixed(2) + ' ms';
 
                 const successRate = filteredRecords.length > 0
                     ? (online / filteredRecords.length) * 100
