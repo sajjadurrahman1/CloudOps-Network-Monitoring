@@ -183,3 +183,33 @@ th {
         grid-template-columns: 1fr;
     }
 }
+
+/* Dashboard refresh information */
+
+.refresh-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    color: #94a3b8;
+    font-size: 13px;
+}
+
+@media (max-width: 600px) {
+    .refresh-info {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* Stale monitoring status */
+
+.health-stale {
+    color: #f59e0b;
+    font-weight: 700;
+}
+
+.health-card:has(.health-stale) {
+    border-color: #f59e0b;
+}

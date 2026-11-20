@@ -22,6 +22,11 @@
             <p>Network Monitoring & Analytics</p>
         </header>
 
+<div class="refresh-info">
+    <span id="refresh-status">Loading monitoring data...</span>
+    <span id="last-updated">Last Updated: --</span>
+</div>
+
         <!-- Server selector -->
         <section class="server-filter">
             <label for="server-select">Select Server:</label>
@@ -130,6 +135,15 @@
 
                 const records = await response.json();
 
+// Show when the dashboard last fetched monitoring data.
+const lastUpdated = new Date();
+
+document.getElementById('last-updated').textContent =
+    'Last Updated: ' + lastUpdated.toLocaleTimeString();
+
+document.getElementById('refresh-status').textContent =
+    'Dashboard updated';
+
 // Build the latest health overview for all servers.
 // This uses all API records, not the dropdown-filtered records.
 const healthGrid = document.getElementById(
@@ -153,6 +167,7 @@ records.forEach(record => {
     }
 });
 
+
 // Create a health card for each server.
 latestByServer.forEach(record => {
     const card = document.createElement('div');
@@ -161,12 +176,27 @@ latestByServer.forEach(record => {
     const name = document.createElement('h3');
     name.textContent = record.server;
 
-    const status = document.createElement('p');
-    status.textContent = record.status;
+    // Mark monitoring data as stale after 2 minutes.
+    const lastCheckTime = Date.parse(record.timestamp);
+    const age = Date.now() - lastCheckTime;
 
-    status.className = record.status === 'ONLINE'
-        ? 'health-online'
-        : 'health-offline';
+    const isStale =
+        !Number.isFinite(lastCheckTime) ||
+        age > 120000 ||
+        age < -60000;
+
+    const displayStatus = isStale
+        ? 'STALE'
+        : record.status;
+
+    const status = document.createElement('p');
+    status.textContent = displayStatus;
+
+    status.className = isStale
+        ? 'health-stale'
+        : record.status === 'ONLINE'
+            ? 'health-online'
+            : 'health-offline';
 
     const responseTime = document.createElement('p');
 
@@ -190,6 +220,7 @@ latestByServer.forEach(record => {
 
     healthGrid.appendChild(card);
 });
+
 
                 // Get the server selector.
                 const serverSelect =
