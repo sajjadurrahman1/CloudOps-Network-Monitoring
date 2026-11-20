@@ -1,4 +1,4 @@
-
+import os
 import json
 from pathlib import Path
 import requests
@@ -17,7 +17,12 @@ from database import (
 # Load monitoring targets from servers.json.
 CONFIG_FILE = Path(__file__).resolve().parent / "servers.json"
 
+MONITOR_INTERVAL = int(
+    os.environ.get("MONITOR_INTERVAL", "30")
+)
 
+if MONITOR_INTERVAL < 1:
+    raise ValueError("MONITOR_INTERVAL must be at least 1 second")
 def load_servers():
     with CONFIG_FILE.open("r", encoding="utf-8") as file:
         config = json.load(file)
@@ -149,7 +154,7 @@ def main():
                 check_server(server)
 
             print("Monitoring cycle completed.\n")
-            time.sleep(30)
+            time.sleep(MONITOR_INTERVAL)
 
     except KeyboardInterrupt:
         print("\nCloudOps monitoring stopped.")

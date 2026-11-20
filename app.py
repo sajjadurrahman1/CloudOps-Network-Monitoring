@@ -1,17 +1,28 @@
-from contextlib import closing
-from flask import Flask, jsonify, render_template
+
+import os
 import sqlite3
+from contextlib import closing
 
-from database import DB_NAME, create_database, get_recent_alerts
+from flask import Flask, jsonify, render_template
 
+from database import (
+    create_database,
+    get_recent_alerts,
+    get_recent_monitoring
+)
+
+
+# Initialize Flask application.
 app = Flask(__name__)
 
-# Ensure the required database tables exist.
+# Ensure database tables exist.
 create_database()
 
 
 @app.route("/")
 def home():
+    """Return the application health status."""
+
     return jsonify({
         "application": "CloudOps",
         "message": "Network Monitoring API",
@@ -21,12 +32,16 @@ def home():
 
 @app.route("/dashboard")
 def dashboard():
+    """Render the monitoring dashboard."""
+
     return render_template("index.html")
 
 
 @app.route("/api/monitoring")
 def get_monitoring_data():
     """Return the latest 100 monitoring records."""
+
+    return jsonify(get_recent_monitoring(limit=100))
 
     with closing(sqlite3.connect(DB_NAME)) as conn:
         conn.row_factory = sqlite3.Row
@@ -54,4 +69,15 @@ def get_alerts():
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5001, debug=True)
+    # Hosting platforms usually supply a PORT variable.
+    port = int(os.environ.get("PORT", 5001))
+
+    # Keep debug mode disabled unless explicitly enabled.
+    debug = os.environ.get("FLASK_DEBUG", "0") == "1"
+
+    # Bind to all interfaces when running the development server.
+    app.run(
+        host="0.0.0.0",
+        port=port,
+        debug=debug
+    )
