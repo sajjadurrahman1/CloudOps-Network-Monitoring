@@ -206,14 +206,15 @@ latestByServer.forEach(record => {
     name.textContent = record.server;
 
     // Mark monitoring data as stale after 2 minutes.
-    const lastCheckTime = Date.parse(record.timestamp);
-    const age = Date.now() - lastCheckTime;
+  // Mark monitoring data as stale after 15 minutes.
+// Allows for delays in GitHub Actions scheduled runs.
+const lastCheckTime = Date.parse(record.timestamp);
+const age = Date.now() - lastCheckTime;
 
-    const isStale =
-        !Number.isFinite(lastCheckTime) ||
-        age > 120000 ||
-        age < -60000;
-
+const isStale =
+    !Number.isFinite(lastCheckTime) ||
+    age > 900000 ||
+    age < -60000;
     const displayStatus = isStale
         ? 'STALE'
         : record.status;
