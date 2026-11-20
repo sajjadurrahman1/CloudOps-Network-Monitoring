@@ -1,4 +1,4 @@
-
+from contextlib import closing
 from flask import Flask, jsonify, render_template
 import sqlite3
 
@@ -28,7 +28,7 @@ def dashboard():
 def get_monitoring_data():
     """Return the latest 100 monitoring records."""
 
-    with sqlite3.connect(DB_NAME) as conn:
+    with closing(sqlite3.connect(DB_NAME)) as conn:
         conn.row_factory = sqlite3.Row
 
         records = conn.execute("""
