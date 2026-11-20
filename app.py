@@ -2,9 +2,12 @@
 from flask import Flask, jsonify, render_template
 import sqlite3
 
+from database import DB_NAME, create_database, get_recent_alerts
+
 app = Flask(__name__)
 
-DB_NAME = "cloudops.db"
+# Ensure the required database tables exist.
+create_database()
 
 
 @app.route("/")
@@ -15,13 +18,16 @@ def home():
         "status": "running"
     })
 
+
 @app.route("/dashboard")
 def dashboard():
     return render_template("index.html")
+
+
 @app.route("/api/monitoring")
 def get_monitoring_data():
+    """Return the latest 100 monitoring records."""
 
-    # Connect to the existing monitoring database
     with sqlite3.connect(DB_NAME) as conn:
         conn.row_factory = sqlite3.Row
 
@@ -33,10 +39,18 @@ def get_monitoring_data():
             LIMIT 100
         """).fetchall()
 
-    # Convert database records into JSON
     results = [dict(record) for record in records]
 
     return jsonify(results)
+
+
+@app.route("/api/alerts")
+def get_alerts():
+    """Return the latest outage and recovery alerts."""
+
+    alerts = get_recent_alerts(limit=20)
+
+    return jsonify(alerts)
 
 
 if __name__ == "__main__":

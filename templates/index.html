@@ -89,6 +89,35 @@
     </div>
 </section>
 
+<!-- Server Alert History -->
+<section class="panel alerts-panel">
+    <h2>Server Alert History</h2>
+
+    <p class="chart-description">
+        Recent server outages and recoveries
+    </p>
+
+    <div class="alerts-table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Server</th>
+                    <th>Previous Status</th>
+                    <th>New Status</th>
+                    <th>Event</th>
+                </tr>
+            </thead>
+
+            <tbody id="alerts-table">
+                <tr>
+                    <td colspan="5">Loading alerts...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
         <!-- Response-time chart -->
 
         <section class="panel chart-panel">
@@ -468,11 +497,92 @@ document.getElementById('slowest-response')
         document.getElementById('server-select')
             .addEventListener('change', loadMonitoringData);
 
-        // Initial data load.
-        loadMonitoringData();
+// Load recent server outage and recovery alerts.
+async function loadAlerts() {
+    const alertsTable = document.getElementById('alerts-table');
 
-        // Automatically refresh every 30 seconds.
-        setInterval(loadMonitoringData, 30000);
+    try {
+        const response = await fetch('/api/alerts');
+
+        if (!response.ok) {
+            throw new Error('Failed to load alerts');
+        }
+
+        const alerts = await response.json();
+
+        alertsTable.replaceChildren();
+
+        if (alerts.length === 0) {
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+
+            cell.colSpan = 5;
+            cell.textContent = 'No alerts recorded yet.';
+
+            row.appendChild(cell);
+            alertsTable.appendChild(row);
+            return;
+        }
+
+        alerts.forEach(alert => {
+            const row = document.createElement('tr');
+
+            const values = [
+                alert.timestamp.replace('T', ' '),
+                alert.server,
+                alert.previous_status,
+                alert.new_status
+            ];
+
+            values.forEach(value => {
+                const cell = document.createElement('td');
+                cell.textContent = value;
+                row.appendChild(cell);
+            });
+
+            const eventCell = document.createElement('td');
+            const badge = document.createElement('span');
+
+            badge.textContent = alert.alert_type;
+            badge.className = 'alert-badge';
+
+            if (alert.alert_type === 'OUTAGE') {
+                badge.classList.add('alert-outage');
+            } else if (alert.alert_type === 'RECOVERY') {
+                badge.classList.add('alert-recovery');
+            }
+
+            eventCell.appendChild(badge);
+            row.appendChild(eventCell);
+
+            alertsTable.appendChild(row);
+        });
+
+    } catch (error) {
+        console.error('Alerts loading error:', error);
+
+        alertsTable.replaceChildren();
+
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+
+        cell.colSpan = 5;
+        cell.textContent = 'Unable to load alert history.';
+
+        row.appendChild(cell);
+        alertsTable.appendChild(row);
+    }
+}
+
+       
+// Initial dashboard and alert data load.
+loadMonitoringData();
+loadAlerts();
+
+// Automatically refresh every 30 seconds.
+setInterval(loadMonitoringData, 30000);
+setInterval(loadAlerts, 30000);
+
     </script>
 </body>
 </html>

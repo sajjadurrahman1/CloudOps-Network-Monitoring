@@ -5,7 +5,13 @@ import requests
 import time
 from datetime import datetime
 
-from database import create_database, save_result
+
+from database import (
+    create_database,
+    save_result,
+    get_last_status,
+    save_alert
+)
 
 
 # Load monitoring targets from servers.json.
@@ -90,7 +96,11 @@ def check_server(server):
     print(f"HTTP Status: {http_status}")
     print(f"Timestamp: {timestamp}")
 
-    # Save one monitoring record to the database.
+   
+    # Retrieve the previous status before saving the new check.
+    previous_status = get_last_status(name)
+
+    # Save the current monitoring result.
     save_result(
         name,
         status,
@@ -99,7 +109,31 @@ def check_server(server):
         timestamp
     )
 
+    # Generate alerts only when the server changes status.
+    if previous_status is not None and previous_status != status:
+
+        if previous_status == "ONLINE" and status == "OFFLINE":
+            alert_type = "OUTAGE"
+            print(f"[ALERT] {name} changed from ONLINE to OFFLINE")
+
+        elif previous_status == "OFFLINE" and status == "ONLINE":
+            alert_type = "RECOVERY"
+            print(f"[RECOVERY] {name} changed from OFFLINE to ONLINE")
+
+        else:
+            alert_type = None
+
+        if alert_type is not None:
+            save_alert(
+                name,
+                previous_status,
+                status,
+                alert_type,
+                timestamp
+            )
+
     print("-" * 40)
+
 
 
 def main():
