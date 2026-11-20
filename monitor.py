@@ -1,10 +1,12 @@
+
+import argparse
 import os
 import json
-from pathlib import Path
-import requests
 import time
-from datetime import datetime
+from pathlib import Path
+from datetime import datetime, timezone
 
+import requests
 
 from database import (
     create_database,
@@ -14,7 +16,10 @@ from database import (
 )
 
 
-# Load monitoring targets from servers.json.
+# --------------------------------------------------
+# Configuration
+# --------------------------------------------------
+
 CONFIG_FILE = Path(__file__).resolve().parent / "servers.json"
 
 MONITOR_INTERVAL = int(
@@ -22,20 +27,26 @@ MONITOR_INTERVAL = int(
 )
 
 if MONITOR_INTERVAL < 1:
-    raise ValueError("MONITOR_INTERVAL must be at least 1 second")
+    raise ValueError(
+        "MONITOR_INTERVAL must be at least 1 second"
+    )
+
+
+# --------------------------------------------------
+# Load and validate servers
+# --------------------------------------------------
+
 def load_servers():
     with CONFIG_FILE.open("r", encoding="utf-8") as file:
         config = json.load(file)
 
     servers = config["servers"]
 
-    # Ensure at least one server is configured.
     if not isinstance(servers, list) or not servers:
         raise ValueError(
             "'servers' must be a non-empty list"
         )
 
-    # Validate each server configuration.
     for server in servers:
         if (
             not isinstance(server, dict)
@@ -44,14 +55,16 @@ def load_servers():
             or not server["name"].strip()
             or not server["url"].startswith(("http://", "https://"))
         ):
-            raise ValueError("Invalid server configuration")
+            raise ValueError(
+                "Invalid server configuration"
+            )
 
     return servers
 
 
-# Handle configuration errors gracefully.
 try:
     SERVERS = load_servers()
+
 except (
     FileNotFoundError,
     json.JSONDecodeError,
@@ -63,18 +76,25 @@ except (
     )
 
 
+# --------------------------------------------------
+# Monitor an individual server
+# --------------------------------------------------
+
 def check_server(server):
     name = server["name"]
     url = server["url"]
 
-    timestamp = datetime.now().isoformat(
+    timestamp = datetime.now(timezone.utc).isoformat(
         timespec="seconds"
     )
 
     try:
         start_time = time.perf_counter()
 
-        response = requests.get(url, timeout=5)
+        response = requests.get(
+            url,
+            timeout=5
+        )
 
         response_time = round(
             (time.perf_counter() - start_time) * 1000,
@@ -88,12 +108,14 @@ def check_server(server):
         else:
             status = "OFFLINE"
 
-    except requests.RequestException:
+    except requests.RequestException as error:
         status = "OFFLINE"
         response_time = None
         http_status = None
 
-    # Display monitoring results.
+        print(f"Request error for {name}: {error}")
+
+    # Display monitoring results
     print(f"Server: {name}")
     print(f"URL: {url}")
     print(f"Status: {status}")
@@ -101,11 +123,10 @@ def check_server(server):
     print(f"HTTP Status: {http_status}")
     print(f"Timestamp: {timestamp}")
 
-   
-    # Retrieve the previous status before saving the new check.
+    # Get the previous status before saving
     previous_status = get_last_status(name)
 
-    # Save the current monitoring result.
+    # Save current monitoring result
     save_result(
         name,
         status,
@@ -114,16 +135,22 @@ def check_server(server):
         timestamp
     )
 
-    # Generate alerts only when the server changes status.
+    # Generate an alert when status changes
     if previous_status is not None and previous_status != status:
 
         if previous_status == "ONLINE" and status == "OFFLINE":
             alert_type = "OUTAGE"
-            print(f"[ALERT] {name} changed from ONLINE to OFFLINE")
+            print(
+                f"[ALERT] {name} changed "
+                "from ONLINE to OFFLINE"
+            )
 
         elif previous_status == "OFFLINE" and status == "ONLINE":
             alert_type = "RECOVERY"
-            print(f"[RECOVERY] {name} changed from OFFLINE to ONLINE")
+            print(
+                f"[RECOVERY] {name} changed "
+                "from OFFLINE to ONLINE"
+            )
 
         else:
             alert_type = None
@@ -140,20 +167,52 @@ def check_server(server):
     print("-" * 40)
 
 
+# --------------------------------------------------
+# Run one monitoring cycle
+# --------------------------------------------------
+
+def run_monitoring_cycle():
+    for server in SERVERS:
+        check_server(server)
+
+    print("Monitoring cycle completed.\n")
+
+
+# --------------------------------------------------
+# Main application
+# --------------------------------------------------
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="CloudOps Network Monitoring"
+    )
+
+    parser.add_argument(
+        "--once",
+        action="store_true",
+        help="Run one monitoring cycle and exit"
+    )
+
+    args = parser.parse_args()
+
+    # Initialize SQLite or PostgreSQL
     create_database()
 
     print("CloudOps Multi-Server Monitoring Started")
     print(f"Monitoring {len(SERVERS)} servers")
+
+    # GitHub Actions mode: run once and exit
+    if args.once:
+        run_monitoring_cycle()
+        print("Single monitoring cycle completed.")
+        return
+
+    # Local mode: monitor continuously
     print("Press Ctrl+C to stop.\n")
 
     try:
         while True:
-            for server in SERVERS:
-                check_server(server)
-
-            print("Monitoring cycle completed.\n")
+            run_monitoring_cycle()
             time.sleep(MONITOR_INTERVAL)
 
     except KeyboardInterrupt:

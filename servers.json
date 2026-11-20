@@ -1,9 +1,8 @@
-
 {
   "servers": [
     {
-      "name": "Local Server",
-      "url": "http://127.0.0.1:5000"
+      "name": "CloudOps Application",
+      "url": "https://cloudops-network-monitoring.onrender.com/"
     },
     {
       "name": "Example Website",
